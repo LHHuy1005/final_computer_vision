@@ -104,7 +104,7 @@ model = build(width=img_dims[0], height=img_dims[1], depth=img_dims[2],
                             classes=2)
 
 # compile the model
-optimizer = tf.keras.optimizers.Adam(lr=lr, decay=lr/epochs)
+optimizer = tf.keras.optimizers.Adam(lr=lr, decay=lr/64)
 model.compile(optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"])
 
 # train the model
