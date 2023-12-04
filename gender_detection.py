@@ -5,6 +5,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import BatchNormalization, Conv2D, MaxPooling2D, Activation, Flatten, Dropout, Dense
 from tensorflow.keras import backend as K
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Input, Reshape
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -38,70 +39,113 @@ for path in glob.glob('gender_dataset_face/Training/male/*'):
 x_train = np.array(x_train, dtype="float") / 255.0
 y_train = np.array(y_train)
 
+x_tst = []
+y_tst = []
+
+for path in glob.glob('gender_dataset_face\Validation\\female\*'):
+    img = cv2.imread(path)
+    img = cv2.resize(img, (img_width, img_height))
+    img = np.array(img) / 255.0
+    x_tst.append(img)
+    y_tst.append(0)
+
+for path in glob.glob('gender_dataset_face\Validation\male\*'):
+    img = cv2.imread(path)
+    img = cv2.resize(img, (img_width, img_height))
+    img = np.array(img) / 255.0
+    x_tst.append(img)
+    y_tst.append(1)
+
+x_test = np.array(x_tst)
+y_test = np.array(y_tst)
+
 # split dataset for training and validation
-(trainX, testX, trainY, testY) = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+# (trainX, testX, trainY, testY) = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+#
+# trainY = to_categorical(trainY, num_classes=2) # [[1, 0], [0, 1], [0, 1], ...]
+# testY = to_categorical(testY, num_classes=2)
+#
+# # augmenting datset
+# aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1,
+#                          height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
+#                          horizontal_flip=True, fill_mode="nearest")
+#
+# # define model
+# def build(width, height, depth, classes):
+#     model = Sequential()
+#     inputShape = (height, width, depth)
+#     chanDim = -1
+#
+#     if K.image_data_format() == "channels_first": #Returns a string, either 'channels_first' or 'channels_last'
+#         inputShape = (depth, height, width)
+#         chanDim = 1
+#
+#     # The axis that should be normalized, after a Conv2D layer with data_format="channels_first",
+#     # set axis=1 in BatchNormalization.
+#
+#     model.add(Conv2D(32, (3,3), padding="same", input_shape=inputShape))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization(axis=chanDim))
+#     model.add(MaxPooling2D(pool_size=(3,3)))
+#     model.add(Dropout(0.25))
+#
+#     model.add(Conv2D(64, (3,3), padding="same"))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization(axis=chanDim))
+#
+#     model.add(Conv2D(64, (3,3), padding="same"))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization(axis=chanDim))
+#     model.add(MaxPooling2D(pool_size=(2,2)))
+#     model.add(Dropout(0.25))
+#
+#     model.add(Conv2D(128, (3,3), padding="same"))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization(axis=chanDim))
+#
+#     model.add(Conv2D(128, (3,3), padding="same"))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization(axis=chanDim))
+#     model.add(MaxPooling2D(pool_size=(2,2)))
+#     model.add(Dropout(0.25))
+#
+#     model.add(Flatten())
+#     model.add(Dense(1024))
+#     model.add(Activation("relu"))
+#     model.add(BatchNormalization())
+#     model.add(Dropout(0.5))
+#
+#     model.add(Dense(classes))
+#     model.add(Activation("sigmoid"))
+#
+#     return model
+#
+# # build model
+# model = build(width=img_dims[0], height=img_dims[1], depth=img_dims[2],
+#                             classes=2)
 
-trainY = to_categorical(trainY, num_classes=2) # [[1, 0], [0, 1], [0, 1], ...]
-testY = to_categorical(testY, num_classes=2)
 
-# augmenting datset 
-aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1,
-                         height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
-                         horizontal_flip=True, fill_mode="nearest")
 
-# define model
-def build(width, height, depth, classes):
-    model = Sequential()
-    inputShape = (height, width, depth)
-    chanDim = -1
+# CNN model
+inp = Input(shape=(img_height, img_width, 3))  # input shape
+cnn = Conv2D(filters=8, kernel_size=3, activation='relu')(inp)
+pooling = MaxPooling2D(pool_size=(2, 2))(cnn)
+drop = Dropout(0.2)(pooling)
 
-    if K.image_data_format() == "channels_first": #Returns a string, either 'channels_first' or 'channels_last'
-        inputShape = (depth, height, width)
-        chanDim = 1
-    
-    # The axis that should be normalized, after a Conv2D layer with data_format="channels_first", 
-    # set axis=1 in BatchNormalization.
+cnn = Conv2D(filters=32, kernel_size=4, activation='relu')(drop)
+pooling = MaxPooling2D(pool_size=(2, 2))(cnn)
+drop = Dropout(0.2)(pooling)
 
-    model.add(Conv2D(32, (3,3), padding="same", input_shape=inputShape))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization(axis=chanDim))
-    model.add(MaxPooling2D(pool_size=(3,3)))
-    model.add(Dropout(0.25))
+cnn = Conv2D(filters=16, kernel_size=4, activation='relu')(drop)
+pooling = MaxPooling2D(pool_size=(2, 2))(cnn)
 
-    model.add(Conv2D(64, (3,3), padding="same"))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization(axis=chanDim))
+f = Flatten()(pooling)
+fc1 = Dense(units=32, activation='relu')(f)
+fc2 = Dense(units=16, activation='relu')(fc1)
+out = Dense(units=1, activation='sigmoid')(fc2)
 
-    model.add(Conv2D(64, (3,3), padding="same"))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization(axis=chanDim))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Dropout(0.25))
-
-    model.add(Conv2D(128, (3,3), padding="same"))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization(axis=chanDim))
-
-    model.add(Conv2D(128, (3,3), padding="same"))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization(axis=chanDim))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-    model.add(Dense(1024))
-    model.add(Activation("relu"))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.5))
-
-    model.add(Dense(classes))
-    model.add(Activation("sigmoid"))
-
-    return model
-
-# build model
-model = build(width=img_dims[0], height=img_dims[1], depth=img_dims[2],
-                            classes=2)
+model = Model(inputs=inp, outputs=out)
+model.summary()
 
 # compile the model
 optimizer = tf.keras.optimizers.Adam(lr=lr, decay=lr/64)
